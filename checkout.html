@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>결제 화면</title>
+  <style>
+    *{box-sizing:border-box} body{margin:0;font-family:"Pretendard","Noto Sans KR",Arial,sans-serif;background:#f6f8f6;color:#17231c}
+    .header{background:#fff;border-bottom:1px solid #e5ebe6;padding:18px 5%;display:flex;gap:18px;align-items:center}
+    button{font-family:inherit;cursor:pointer;border:0;border-radius:14px;padding:12px 16px;font-weight:900}
+    .back{background:#edf7f1;color:#0f7f4e}.container{width:min(1160px,90%);margin:30px auto}.kicker{color:#0f7f4e;font-size:12px;font-weight:900;letter-spacing:.12em}
+    h1{font-size:40px;margin:0 0 8px}.desc{color:#6b756d}.layout{display:grid;grid-template-columns:1.2fr .8fr;gap:22px}
+    .side{display:grid;gap:18px;align-content:start}.card{background:white;border-radius:26px;padding:24px;box-shadow:0 16px 38px rgba(23,55,35,.09);border:1px solid #e5ebe6}
+    .items{display:grid;gap:14px;margin-top:16px}.item{display:grid;grid-template-columns:82px 1fr auto;gap:14px;align-items:center;border:1px solid #e5ebe6;border-radius:20px;padding:14px}
+    .item img{width:82px;height:82px;border-radius:16px;object-fit:cover}.brand{color:#6b756d;font-size:13px}.badges{display:flex;gap:7px;margin-top:8px;flex-wrap:wrap}.badge{padding:6px 9px;border-radius:999px;background:#edf7f1;color:#0f7f4e;font-size:12px;font-weight:900}.risk{background:#ffe3e3;color:#e03131}.soldout{background:#e7e7e7;color:#555}
+    .input{display:grid;gap:8px;margin-top:14px}.input label{color:#6b756d;font-size:13px}.input input,.input select{border:1px solid #e5ebe6;border-radius:14px;padding:13px}
+    .pay{display:block;padding:12px 0}.price-line{display:flex;justify-content:space-between;padding:13px 0;border-bottom:1px solid #e5ebe6}.price-line.total{border:0}.price-line.total strong{font-size:24px;color:#0f7f4e}
+    .checkout{width:100%;background:#0f7f4e;color:#fff;margin-top:14px;font-size:16px}.note{color:#6b756d;font-size:12px;line-height:1.6}.modal.hidden{display:none}.modal{position:fixed;inset:0;background:rgba(0,0,0,.48);display:grid;place-items:center}.modal-card{width:min(460px,90vw);background:#fff;border-radius:28px;padding:28px;text-align:center}
+    @media(max-width:900px){.layout{grid-template-columns:1fr}.item{grid-template-columns:1fr}.item img{width:100%;height:180px}}
+  </style>
+</head>
+<body>
+  <header class="header"><button class="back" onclick="history.back()">← 장바구니로 돌아가기</button><strong>OLIVE SALE CHECKOUT</strong></header>
+  <main class="container">
+    <section><p class="kicker">PAYMENT</p><h1>결제하기</h1><p class="desc">장바구니 재고 상태를 확인한 뒤 결제를 진행하는 발표용 데모 화면입니다.</p></section>
+    <section class="layout">
+      <section class="card"><h2>주문 상품</h2><div id="checkoutItems" class="items"></div></section>
+      <aside class="side">
+        <section class="card"><h2>배송 정보</h2><div class="input"><label>받는 사람</label><input value="최가은" /></div><div class="input"><label>배송지</label><input value="서울특별시 데모구 데모로 123" /></div><div class="input"><label>배송 요청사항</label><select><option>문 앞에 놓아주세요</option><option>배송 전 연락주세요</option></select></div></section>
+        <section class="card"><h2>결제 수단</h2><label class="pay"><input type="radio" name="pay" checked /> 신용/체크카드</label><label class="pay"><input type="radio" name="pay" /> 간편결제</label><label class="pay"><input type="radio" name="pay" /> 무통장입금</label></section>
+        <section class="card"><p class="kicker">FINAL PRICE</p><div class="price-line"><span>총 상품금액</span><strong id="checkoutOriginal">0원</strong></div><div class="price-line"><span>할인금액</span><strong id="checkoutDiscount">0원</strong></div><div class="price-line total"><span>최종 결제금액</span><strong id="checkoutFinal">0원</strong></div><button class="checkout" onclick="completePayment()">최종 결제하기</button><p id="riskWarning" class="note"></p></section>
+      </aside>
+    </section>
+  </main>
+  <div id="paymentModal" class="modal hidden"><div class="modal-card"><h2>결제 요청 완료</h2><p>실제 결제는 발생하지 않는 발표용 데모입니다.</p><button class="checkout" onclick="location.href='index.html'">장바구니로 돌아가기</button></div></div>
+  <script>
+    function formatPrice(v){return `${Number(v||0).toLocaleString("ko-KR")}원`}
+    const items=JSON.parse(sessionStorage.getItem("checkoutItems")||"[]"); const box=document.getElementById("checkoutItems"); let total=0, original=0, risk=0, sold=0;
+    if(!items.length){box.innerHTML='<div>결제할 상품이 없습니다.</div>'}else{box.innerHTML="";items.forEach(item=>{const s=Number(item.stock_qty); if(s<=0)sold++; else if(s<10)risk++; if(s>0){total+=Number(item.price||0)*Number(item.quantity||1); original+=Number(item.originalPrice||0)*Number(item.quantity||1)} const div=document.createElement("div"); div.className="item"; div.innerHTML=`<img src="${item.image}" alt="${item.name}" /><div><div class="brand">${item.brand}</div><strong>${item.product_name||item.name}</strong><div class="badges"><span class="badge">${item.category}</span><span class="badge ${s<=0?"soldout":s<10?"risk":""}">${s<=0?"품절 제외":s<10?"품절 위험":"구매 가능"}</span></div></div><strong>${s<=0?"품절":formatPrice(item.price)}</strong>`; box.appendChild(div)})}
+    document.getElementById("checkoutOriginal").textContent=formatPrice(original); document.getElementById("checkoutDiscount").textContent=formatPrice(original-total); document.getElementById("checkoutFinal").textContent=formatPrice(total);
+    document.getElementById("riskWarning").textContent=sold>0?`품절 상품 ${sold}개는 결제 금액에서 제외되었습니다.`:risk>0?`품절 위험 상품 ${risk}개가 포함되어 있습니다. 결제 전 재고 확인을 권장합니다.`:"모든 상품이 구매 가능한 상태입니다.";
+    function completePayment(){document.getElementById("paymentModal").classList.remove("hidden")}
+  </script>
+</body>
+</html>
