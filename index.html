@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>올영세일 장바구니 품절 알림 서비스</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="hero">
+    <div class="hero-text">
+      <p class="badge">DX Mini Project 6 · Serverless Demo</p>
+      <h1>올영세일 장바구니 품절 알림 서비스</h1>
+      <p class="subtitle">
+        장바구니 상품 재고가 10개 미만으로 줄어들면 품절 위험 알림을 생성하는 서버리스 기반 데모입니다.
+      </p>
+      <div class="hero-actions">
+        <button class="primary-btn" onclick="loadCartStocks()">장바구니 재고 조회</button>
+        <button class="secondary-btn" onclick="checkStockAlerts()">재고 확인 및 알림 생성</button>
+      </div>
+    </div>
+    <div class="hero-card">
+      <span>Architecture</span>
+      <strong>GitHub Pages → API Gateway → Lambda → DynamoDB</strong>
+    </div>
+  </header>
+
+  <main>
+    <section class="summary">
+      <div class="summary-card">
+        <span>API 요청 수</span>
+        <strong id="requestCount">0</strong>
+      </div>
+      <div class="summary-card">
+        <span>품절 위험 상품</span>
+        <strong id="riskCount">0</strong>
+      </div>
+      <div class="summary-card">
+        <span>발송 알림 수</span>
+        <strong id="alertCount">0</strong>
+      </div>
+      <div class="summary-card">
+        <span>운영 목표</span>
+        <strong>p95 1초 이하</strong>
+      </div>
+    </section>
+
+    <section class="layout">
+      <section class="panel">
+        <div class="section-title">
+          <h2>장바구니 상품 재고</h2>
+          <p>API Gateway를 통해 Lambda가 DynamoDB에서 장바구니와 상품 재고를 조회합니다.</p>
+        </div>
+        <div id="productList" class="product-list">
+          <div class="empty">상단의 “장바구니 재고 조회” 버튼을 눌러 데이터를 불러오세요.</div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="section-title">
+          <h2>품절 위험 알림 이력</h2>
+          <p>재고가 10개 미만이면 Notifications 테이블에 알림 이력이 저장됩니다.</p>
+        </div>
+        <div id="notificationList" class="notification-list">
+          <div class="empty">아직 조회된 알림 이력이 없습니다.</div>
+        </div>
+      </section>
+    </section>
+
+    <section class="flow">
+      <h2>서비스 처리 흐름</h2>
+      <div class="flow-grid">
+        <div>사용자<br><strong>장바구니 진입</strong></div>
+        <div>API Gateway<br><strong>요청 수신</strong></div>
+        <div>Lambda<br><strong>재고 확인</strong></div>
+        <div>DynamoDB<br><strong>알림 저장</strong></div>
+        <div>CloudWatch<br><strong>로그 확인</strong></div>
+      </div>
+    </section>
+
+    <section class="log-panel">
+      <h2>실행 로그</h2>
+      <pre id="logBox">대기 중...</pre>
+    </section>
+  </main>
+
+  <footer>
+    <p>Team 세일사수단 · Olive Young Sale Stock Alert Demo</p>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
