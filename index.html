@@ -7,176 +7,176 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div class="page-bg"></div>
-
-  <nav class="top-nav">
-    <div class="brand">
-      <div class="brand-icon">O</div>
-      <div>
-        <strong>OLIVE STOCK ALERT</strong>
-        <span>Serverless Retail Demo</span>
-      </div>
+  <header class="top-banner">
+    <div class="top-banner-inner">
+      <span class="banner-badge">ONLY SALE</span>
+      <span>올영세일 기간, 장바구니 상품의 재고가 10개 미만이면 품절 위험 알림을 받을 수 있어요.</span>
     </div>
-    <div class="nav-status">
-      <span class="dot"></span>
-      AWS Seoul Region · API Connected
-    </div>
-  </nav>
-
-  <header class="hero">
-    <section class="hero-copy">
-      <p class="eyebrow">DX Mini Project 6 · Cloud Architecture</p>
-      <h1>올영세일 장바구니<br />품절 위험 알림 플랫폼</h1>
-      <p class="subtitle">
-        세일 피크 시간대에 장바구니 상품 재고를 실시간으로 확인하고,
-        재고 10개 미만 상품은 자동으로 알림 이력을 생성하는 서버리스 데모입니다.
-      </p>
-
-      <div class="hero-actions">
-        <button class="primary-btn" onclick="loadCartStocks()">
-          <span>01</span> 장바구니 재고 조회
-        </button>
-        <button class="secondary-btn" onclick="checkStockAlerts()">
-          <span>02</span> 재고 확인 및 알림 생성
-        </button>
-      </div>
-
-      <div class="hero-tags">
-        <span>GitHub Pages</span>
-        <span>API Gateway</span>
-        <span>Lambda</span>
-        <span>DynamoDB</span>
-        <span>CloudWatch</span>
-      </div>
-    </section>
-
-    <section class="architecture-card">
-      <div class="card-head">
-        <span>Architecture Flow</span>
-        <strong>LIVE</strong>
-      </div>
-      <div class="arch-flow">
-        <div class="arch-node user">User<br><b>Web</b></div>
-        <div class="arch-line"></div>
-        <div class="arch-node api">API<br><b>Gateway</b></div>
-        <div class="arch-line"></div>
-        <div class="arch-node lambda">AWS<br><b>Lambda</b></div>
-        <div class="arch-line"></div>
-        <div class="arch-node db">DynamoDB<br><b>Tables</b></div>
-      </div>
-      <div class="mini-dashboard">
-        <div>
-          <span>Target Latency</span>
-          <strong>p95 &lt; 1s</strong>
-        </div>
-        <div>
-          <span>Cost Model</span>
-          <strong>Pay-per-use</strong>
-        </div>
-      </div>
-    </section>
   </header>
 
-  <main>
-    <section class="kpi-grid">
-      <article class="kpi-card">
-        <span class="kpi-label">API 요청 수</span>
-        <strong id="requestCount">0</strong>
-        <p>프론트에서 호출한 API 누적 횟수</p>
-      </article>
-      <article class="kpi-card risk">
-        <span class="kpi-label">품절 위험 상품</span>
-        <strong id="riskCount">0</strong>
-        <p>재고 10개 미만으로 감지된 상품</p>
-      </article>
-      <article class="kpi-card">
-        <span class="kpi-label">발송 알림 수</span>
-        <strong id="alertCount">0</strong>
-        <p>DynamoDB Notifications 저장 건수</p>
-      </article>
-      <article class="kpi-card">
-        <span class="kpi-label">서비스 상태</span>
-        <strong id="serviceStatus">READY</strong>
-        <p>API Gateway · Lambda 연동 상태</p>
-      </article>
+  <header class="main-header">
+    <div class="logo">OLIVE YOUNG</div>
+    <nav class="main-nav">
+      <a href="#">스킨케어</a>
+      <a href="#">메이크업</a>
+      <a href="#">헬스</a>
+      <a href="#">바디케어</a>
+      <a href="#">세일</a>
+    </nav>
+    <div class="header-actions">
+      <button class="outline-btn" onclick="loadCartStocks()">장바구니 새로고침</button>
+      <button class="dark-btn" onclick="checkStockAlerts()">재고 확인 & 알림 생성</button>
+    </div>
+  </header>
+
+  <main class="page">
+    <section class="page-title-area">
+      <div>
+        <p class="page-kicker">장바구니</p>
+        <h1>장바구니에 담긴 상품</h1>
+        <p class="page-desc">세일 기간 품절되기 전에 재고를 확인하고, 품절 임박 상품은 알림으로 받아보세요.</p>
+      </div>
+
+      <div class="status-box">
+        <div>
+          <span>API 요청 수</span>
+          <strong id="requestCount">0</strong>
+        </div>
+        <div>
+          <span>품절 위험 상품</span>
+          <strong id="riskCount">0</strong>
+        </div>
+        <div>
+          <span>발송 알림 수</span>
+          <strong id="alertCount">0</strong>
+        </div>
+      </div>
     </section>
 
     <section class="content-grid">
-      <section class="panel product-panel">
-        <div class="panel-header">
-          <div>
-            <p class="section-kicker">Cart Inventory</p>
-            <h2>장바구니 상품 재고 현황</h2>
+      <section class="left-section">
+        <div class="cart-header card">
+          <div class="cart-header-left">
+            <input type="checkbox" checked />
+            <span>전체선택</span>
           </div>
-          <button class="ghost-btn" onclick="loadCartStocks()">새로고침</button>
-        </div>
-        <div id="productList" class="product-list">
-          <div class="empty-state">
-            <strong>데이터 대기 중</strong>
-            <p>상단의 “장바구니 재고 조회” 버튼을 눌러 AWS API 데이터를 불러오세요.</p>
+          <div class="cart-header-right">
+            <span>재고 상태를 실시간으로 확인합니다.</span>
           </div>
         </div>
+
+        <div id="cartList" class="cart-list">
+          <div class="empty-box">
+            장바구니 재고를 불러오는 중이거나 아직 데이터가 없습니다.
+          </div>
+        </div>
+
+        <section class="card recommend-section">
+          <div class="section-title-row">
+            <div>
+              <p class="mini-kicker">추천 상품</p>
+              <h2>함께 많이 담는 세일 인기 상품</h2>
+            </div>
+          </div>
+
+          <div class="recommend-grid" id="recommendGrid">
+            <div class="recommend-card">
+              <div class="thumb rec-thumb1"></div>
+              <p class="rec-brand">토리든</p>
+              <h3>다이브인 저분자 히알루론산 세럼</h3>
+              <div class="price-row">
+                <strong>18,900원</strong>
+                <span>22%</span>
+              </div>
+            </div>
+
+            <div class="recommend-card">
+              <div class="thumb rec-thumb2"></div>
+              <p class="rec-brand">라운드랩</p>
+              <h3>1025 독도 토너</h3>
+              <div class="price-row">
+                <strong>15,800원</strong>
+                <span>19%</span>
+              </div>
+            </div>
+
+            <div class="recommend-card">
+              <div class="thumb rec-thumb3"></div>
+              <p class="rec-brand">어노브</p>
+              <h3>딥 데미지 트리트먼트 EX</h3>
+              <div class="price-row">
+                <strong>17,900원</strong>
+                <span>25%</span>
+              </div>
+            </div>
+
+            <div class="recommend-card">
+              <div class="thumb rec-thumb4"></div>
+              <p class="rec-brand">메디힐</p>
+              <h3>마데카소사이드 흔적 패드</h3>
+              <div class="price-row">
+                <strong>21,500원</strong>
+                <span>18%</span>
+              </div>
+            </div>
+          </div>
+        </section>
       </section>
 
-      <aside class="side-stack">
-        <section class="panel scenario-panel">
-          <p class="section-kicker">Demo Scenario</p>
-          <h2>시연 순서</h2>
-          <ol class="scenario-list">
-            <li><span>1</span> 사용자가 장바구니 상품 재고를 조회</li>
-            <li><span>2</span> Lambda가 상품별 재고를 감소 시뮬레이션</li>
-            <li><span>3</span> 10개 미만 상품을 RISK로 분류</li>
-            <li><span>4</span> Notifications 테이블에 알림 이력 저장</li>
-          </ol>
+      <aside class="right-section">
+        <section class="card order-summary">
+          <p class="mini-kicker">주문 예상금액</p>
+          <h2>결제 예정 금액</h2>
+
+          <div class="summary-line">
+            <span>총 상품금액</span>
+            <strong id="totalProductPrice">0원</strong>
+          </div>
+          <div class="summary-line">
+            <span>할인 예상금액</span>
+            <strong id="discountPrice">0원</strong>
+          </div>
+          <div class="summary-line total">
+            <span>최종 결제예정금액</span>
+            <strong id="finalPrice">0원</strong>
+          </div>
+
+          <button class="buy-btn">주문하기</button>
         </section>
 
-        <section class="panel notification-panel">
-          <div class="panel-header compact">
-            <div>
-              <p class="section-kicker">Notification Timeline</p>
-              <h2>품절 위험 알림 이력</h2>
-            </div>
-          </div>
+        <section class="card notice-panel">
+          <p class="mini-kicker">품절 위험 알림</p>
+          <h2>알림 이력</h2>
           <div id="notificationList" class="notification-list">
-            <div class="empty-state small">
-              <strong>알림 없음</strong>
-              <p>재고 확인 후 알림 이력이 표시됩니다.</p>
+            <div class="empty-box small">
+              아직 생성된 품절 위험 알림이 없습니다.
             </div>
           </div>
+        </section>
+
+        <section class="card service-flow">
+          <p class="mini-kicker">서비스 흐름</p>
+          <h2>어떻게 동작하나요?</h2>
+          <ul>
+            <li>장바구니 재고 조회</li>
+            <li>Lambda가 재고 수량 확인</li>
+            <li>10개 미만 상품은 품절 위험 판단</li>
+            <li>알림 이력 저장 및 사용자에게 표시</li>
+          </ul>
         </section>
       </aside>
     </section>
 
-    <section class="ops-grid">
-      <section class="panel flow-panel">
-        <p class="section-kicker">Request Path</p>
-        <h2>서비스 처리 흐름</h2>
-        <div class="flow-grid">
-          <div><span>01</span>사용자<br><strong>장바구니 진입</strong></div>
-          <div><span>02</span>API Gateway<br><strong>요청 수신</strong></div>
-          <div><span>03</span>Lambda<br><strong>재고 확인</strong></div>
-          <div><span>04</span>DynamoDB<br><strong>알림 저장</strong></div>
-          <div><span>05</span>CloudWatch<br><strong>로그 확인</strong></div>
+    <section class="log-section card">
+      <div class="section-title-row">
+        <div>
+          <p class="mini-kicker">실행 로그</p>
+          <h2>API 응답 로그</h2>
         </div>
-      </section>
-
-      <section class="panel log-panel">
-        <div class="panel-header">
-          <div>
-            <p class="section-kicker">Execution Log</p>
-            <h2>실행 로그</h2>
-          </div>
-          <span id="lastUpdated" class="last-updated">대기 중</span>
-        </div>
-        <pre id="logBox">데모 홈페이지가 로드되었습니다. 장바구니 재고 조회 버튼을 눌러 주세요.</pre>
-      </section>
+      </div>
+      <pre id="logBox">대기 중...</pre>
     </section>
   </main>
-
-  <footer>
-    <strong>Team 세일사수단</strong>
-    <span>Olive Young Sale Stock Alert · AWS Serverless Demo</span>
-  </footer>
 
   <script src="script.js"></script>
 </body>
