@@ -1,0 +1,1033 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>올영세일 실시간 재고 화면</title>
+  <style>
+    * { box-sizing: border-box; }
+    :root {
+      --bg:#f5f7f6; --panel:#ffffff; --panel-soft:#fbfcfb; --line:#e5ece8;
+      --text:#18221b; --muted:#68746c; --green:#0f7f4e; --green-dark:#0a5031;
+      --lime:#a4e63f; --blue:#2563eb; --orange:#ff8a00; --red:#e03131;
+      --shadow:0 10px 28px rgba(16,40,28,.08); --radius:24px;
+    }
+    html,body { margin:0; padding:0; font-family:"Pretendard","Noto Sans KR",Arial,sans-serif; background:var(--bg); color:var(--text); }
+    button,input { font-family:inherit; }
+    button { cursor:pointer; border:0; }
+    .app {
+      display:grid; grid-template-columns:260px 1fr; min-height:100vh;
+    }
+    .sidebar {
+      position:sticky; top:0; height:100vh; padding:24px 18px;
+      background:linear-gradient(180deg,#113822,#0c2b1a);
+      color:#fff; display:flex; flex-direction:column; gap:18px;
+    }
+    .brand { display:flex; gap:12px; align-items:center; padding:10px 10px 14px; border-bottom:1px solid rgba(255,255,255,.1); }
+    .brand-mark {
+      width:44px; height:44px; border-radius:14px; display:grid; place-items:center;
+      background:linear-gradient(135deg,var(--green),var(--lime)); font-weight:900; font-size:22px;
+    }
+    .brand strong { display:block; font-size:20px; letter-spacing:-.04em; }
+    .brand span { color:rgba(255,255,255,.65); font-size:12px; }
+    .side-box {
+      background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.08);
+      border-radius:20px; padding:16px;
+    }
+    .side-title { font-size:12px; letter-spacing:.12em; color:#bfeecb; margin:0 0 10px; font-weight:900; }
+    .live-pill {
+      display:inline-flex; align-items:center; gap:8px; padding:8px 12px; border-radius:999px;
+      background:rgba(255,255,255,.08); font-size:13px; font-weight:800;
+    }
+    .live-dot { width:8px; height:8px; border-radius:50%; background:#8c958f; }
+    .live-pill.on .live-dot { background:var(--lime); box-shadow:0 0 0 5px rgba(164,230,63,.14); }
+    .side-actions { display:grid; gap:9px; }
+    .side-btn {
+      width:100%; padding:12px 14px; border-radius:14px; text-align:left; font-weight:800;
+      background:rgba(255,255,255,.12); color:#fff;
+    }
+    .side-btn.primary { background:#fff; color:var(--green-dark); }
+    .side-btn.warn { background:rgba(255,138,0,.16); color:#ffd8b0; }
+    .side-btn.stop { background:rgba(224,49,49,.18); color:#ffd6d6; }
+    .side-nav { display:grid; gap:7px; }
+    .side-nav a {
+      text-decoration:none; color:rgba(255,255,255,.78); padding:10px 12px; border-radius:12px; font-size:14px;
+    }
+    .side-nav a:hover { background:rgba(255,255,255,.08); color:#fff; }
+    .side-stats { display:grid; gap:10px; }
+    .side-stat {
+      display:flex; justify-content:space-between; gap:10px; font-size:13px; color:rgba(255,255,255,.84);
+    }
+    .side-footer { margin-top:auto; color:rgba(255,255,255,.62); font-size:12px; line-height:1.6; padding:0 6px; }
+
+    .main {
+      padding:28px;
+    }
+    .topbar {
+      display:flex; justify-content:space-between; align-items:flex-start; gap:18px; margin-bottom:20px;
+    }
+    .eyebrow { margin:0 0 8px; font-size:12px; letter-spacing:.12em; font-weight:900; color:var(--green); }
+    h1 { margin:0; font-size:34px; letter-spacing:-.05em; }
+    .topbar p { margin:10px 0 0; color:var(--muted); line-height:1.7; max-width:820px; }
+    .top-actions { display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end; }
+    .btn {
+      padding:12px 16px; border-radius:14px; font-weight:900; background:#edf7f1; color:var(--green);
+    }
+    .btn.primary { background:var(--green); color:#fff; }
+    .btn.warn { background:#fff5e8; color:#b86100; }
+    .btn.red { background:#fff0f0; color:var(--red); }
+
+    .summary {
+      display:grid; grid-template-columns:repeat(6,1fr); gap:14px; margin-bottom:20px;
+    }
+    .metric {
+      background:var(--panel); border:1px solid var(--line); border-radius:20px; padding:18px; box-shadow:var(--shadow);
+    }
+    .metric span { display:block; color:var(--muted); font-size:13px; margin-bottom:8px; }
+    .metric strong { font-size:28px; color:var(--green); }
+
+    .content {
+      display:grid; grid-template-columns:minmax(0,1.4fr) 360px; gap:20px;
+    }
+    .left, .right { display:grid; gap:20px; align-content:start; min-width:0; }
+
+    .card {
+      background:var(--panel); border:1px solid var(--line); border-radius:var(--radius);
+      box-shadow:var(--shadow); overflow:hidden;
+    }
+    .card-head {
+      display:flex; justify-content:space-between; align-items:flex-start; gap:16px;
+      padding:22px 22px 10px;
+    }
+    .card-head h2 { margin:0; font-size:23px; letter-spacing:-.04em; }
+    .card-head p { margin:6px 0 0; color:var(--muted); font-size:13px; }
+    .mini-actions { display:flex; gap:8px; flex-wrap:wrap; }
+    .mini-btn { padding:10px 12px; border-radius:12px; font-weight:800; background:#f3f8f5; color:var(--green); }
+    .chart-meta {
+      display:grid; grid-template-columns:1fr auto; gap:16px; align-items:end; padding:0 22px 8px;
+    }
+    .product-tabs { display:flex; gap:8px; flex-wrap:wrap; padding:0 22px 14px; }
+    .tab { padding:9px 12px; border-radius:999px; border:1px solid var(--line); background:#f8faf9; color:var(--muted); font-weight:800; }
+    .tab.active { background:var(--green); border-color:var(--green); color:#fff; }
+    .chart-area { height:340px; padding:8px 14px 18px; background:linear-gradient(180deg,#fbfffc,#f5faf7); border-top:1px solid var(--line); }
+    canvas { width:100%; height:100%; display:block; }
+    .chart-footer {
+      display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;
+      padding:0 22px 20px; color:var(--muted); font-size:13px;
+    }
+    .legend { display:flex; gap:16px; flex-wrap:wrap; }
+    .legend i { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:6px; }
+
+    .selected-box {
+      text-align:right;
+    }
+    .selected-box strong { display:block; font-size:38px; line-height:1; color:var(--green); }
+    .delta.up { color:var(--blue); }
+    .delta.down { color:var(--red); }
+    .delta.flat { color:var(--muted); }
+
+    .board-grid {
+      display:grid; grid-template-columns:repeat(4,1fr); gap:14px; padding:0 22px 22px;
+    }
+    .stock-mini {
+      padding:16px; border-radius:18px; border:1px solid var(--line); background:var(--panel-soft);
+    }
+    .stock-mini strong { display:block; margin:4px 0 10px; font-size:17px; min-height:44px; line-height:1.4; }
+    .badge-row { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px; }
+    .badge {
+      display:inline-flex; align-items:center; padding:6px 9px; border-radius:999px; background:#edf7f1; color:var(--green);
+      font-size:12px; font-weight:900;
+    }
+    .badge.risk { background:#fff1dd; color:#c46d00; }
+    .badge.soldout { background:#ffe5e5; color:var(--red); }
+    .badge.live { background:#eef4ff; color:var(--blue); }
+    .delta-label { font-size:13px; font-weight:900; margin-bottom:10px; }
+    .stock-bar { height:8px; border-radius:999px; background:#e7eeea; overflow:hidden; }
+    .stock-fill { height:100%; background:var(--green); border-radius:999px; }
+    .stock-fill.risk { background:var(--orange); }
+    .stock-fill.soldout { background:var(--red); }
+
+    .cart-list { display:grid; gap:14px; padding:0 22px 22px; }
+    .cart-item {
+      display:grid; grid-template-columns:28px 92px 1fr auto; gap:14px; align-items:center;
+      border:1px solid var(--line); border-radius:20px; padding:14px; background:#fff;
+    }
+    .cart-item.risk { background:#fffaf4; border-color:#ffd8ab; }
+    .cart-item.soldout { background:#f7f7f7; border-color:#dfdfdf; opacity:.9; }
+    .item-image { width:92px; height:92px; border-radius:16px; object-fit:cover; }
+    .brand-name { color:var(--muted); font-size:13px; margin-bottom:4px; }
+    .item-title { margin:0 0 9px; font-size:17px; line-height:1.45; }
+    .price-row { display:flex; gap:9px; align-items:baseline; flex-wrap:wrap; }
+    .price-row strong { font-size:18px; }
+    .price-row del { color:#98a29c; }
+    .discount { color:var(--red); font-weight:900; }
+    .item-side { min-width:110px; text-align:right; }
+    .stock-num { font-size:30px; font-weight:900; color:var(--green); }
+    .stock-num.risk { color:var(--orange); }
+    .stock-num.soldout { color:var(--red); }
+    .item-side small { color:var(--muted); font-size:12px; display:block; margin-bottom:4px; }
+
+    .recommend-grid {
+      display:grid; grid-template-columns:repeat(4,1fr); gap:14px; padding:0 22px 22px;
+    }
+    .recommend-card {
+      border:1px solid var(--line); border-radius:20px; overflow:hidden; background:#fff;
+      text-align:left;
+    }
+    .recommend-card img { width:100%; height:150px; object-fit:cover; display:block; }
+    .recommend-info { padding:14px; }
+    .recommend-info h3 { margin:5px 0 10px; font-size:15px; line-height:1.45; min-height:42px; }
+
+    .side-panel { padding:20px; }
+    .order-lines { display:grid; gap:12px; margin-top:6px; }
+    .line { display:flex; justify-content:space-between; gap:10px; font-size:14px; color:var(--muted); }
+    .line strong { color:var(--text); font-size:16px; }
+    .line.total strong { color:var(--green); font-size:24px; }
+    .ticker-list, .timeline { display:grid; gap:10px; margin-top:6px; }
+    .ticker-item {
+      display:grid; grid-template-columns:1fr auto auto; gap:10px; align-items:center;
+      padding:12px 14px; border-radius:14px; background:#f8fbf9; border:1px solid var(--line);
+      cursor:pointer;
+    }
+    .ticker-item b { font-size:14px; }
+    .ticker-item .value { font-weight:900; }
+    .event {
+      position:relative; padding:14px 14px 14px 18px; border-radius:16px; border:1px solid var(--line); background:#f9fcfa;
+    }
+    .event::before {
+      content:""; position:absolute; left:0; top:14px; bottom:14px; width:4px; border-radius:999px; background:var(--green);
+    }
+    .event.risk::before { background:var(--orange); }
+    .event.soldout::before { background:var(--red); }
+    .event.restock::before { background:var(--blue); }
+    .event strong { display:block; margin-bottom:6px; }
+    .event p { margin:0; color:var(--muted); font-size:14px; line-height:1.55; }
+    .event .time { margin-top:6px; font-size:12px; color:var(--muted); }
+
+    .log-card pre {
+      margin:0; padding:20px 22px 22px; background:#101b14; color:#dff5e7; font-size:13px; line-height:1.6; overflow:auto;
+    }
+    .empty { padding:28px 22px; text-align:center; color:var(--muted); }
+
+    .modal.hidden,.toast.hidden { display:none; }
+    .modal { position:fixed; inset:0; z-index:100; }
+    .modal-backdrop { position:absolute; inset:0; background:rgba(0,0,0,.46); }
+    .modal-card {
+      position:relative; width:min(760px,92vw); margin:6vh auto; background:#fff; border-radius:28px;
+      overflow:auto; max-height:88vh; box-shadow:0 24px 80px rgba(0,0,0,.26); padding:24px;
+    }
+    .modal-close {
+      position:absolute; right:16px; top:14px; width:36px; height:36px; border-radius:50%; background:#f1f4f2; font-size:22px;
+    }
+    .detail-grid { display:grid; grid-template-columns:280px 1fr; gap:24px; }
+    .detail-grid img { width:100%; height:320px; object-fit:cover; border-radius:20px; }
+    .detail-desc { color:var(--muted); line-height:1.7; }
+    .toast {
+      position:fixed; right:26px; bottom:26px; z-index:200; background:#132219; color:#fff; border-radius:14px;
+      padding:14px 18px; box-shadow:var(--shadow);
+    }
+
+    @media (max-width:1300px) {
+      .summary { grid-template-columns:repeat(3,1fr); }
+      .board-grid, .recommend-grid { grid-template-columns:repeat(2,1fr); }
+    }
+    @media (max-width:1100px) {
+      .app { grid-template-columns:1fr; }
+      .sidebar { position:relative; height:auto; }
+      .content { grid-template-columns:1fr; }
+      .topbar { flex-direction:column; }
+    }
+    @media (max-width:760px) {
+      .main { padding:18px; }
+      .summary { grid-template-columns:repeat(2,1fr); }
+      .board-grid, .recommend-grid { grid-template-columns:1fr; }
+      .cart-item { grid-template-columns:1fr; }
+      .item-image { width:100%; height:190px; }
+      .item-side { text-align:left; }
+      .detail-grid { grid-template-columns:1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark">O</div>
+        <div>
+          <strong>OLIVE SALE</strong>
+          <span>Realtime Inventory Screen</span>
+        </div>
+      </div>
+
+      <div class="side-box">
+        <p class="side-title">LIVE STATUS</p>
+        <div id="livePill" class="live-pill"><span class="live-dot"></span><span id="liveLabel">OFF</span></div>
+      </div>
+
+      <div class="side-box">
+        <p class="side-title">QUICK ACTION</p>
+        <div class="side-actions">
+          <button class="side-btn primary" onclick="startLiveMode()">실시간 재고 시작</button>
+          <button class="side-btn" onclick="resetDemoData()">초기화</button>
+          <button class="side-btn warn" onclick="checkStockAlerts()">재고 하락 실행</button>
+          <button class="side-btn" onclick="restockProducts()">재입고 실행</button>
+          <button class="side-btn stop" onclick="stopLiveMode()">중지</button>
+        </div>
+      </div>
+
+      <div class="side-box">
+        <p class="side-title">MENU</p>
+        <nav class="side-nav">
+          <a href="#inventoryChart">실시간 재고 그래프</a>
+          <a href="#inventoryBoard">실시간 재고 현황판</a>
+          <a href="#cartSection">장바구니 상품</a>
+          <a href="#recommendSection">추천 상품</a>
+          <a href="#alertSection">알림 타임라인</a>
+          <a href="#logSection">실행 로그</a>
+        </nav>
+      </div>
+
+      <div class="side-box">
+        <p class="side-title">QUICK SUMMARY</p>
+        <div class="side-stats">
+          <div class="side-stat"><span>선택 상품</span><b id="sideSelectedName">-</b></div>
+          <div class="side-stat"><span>현재 재고</span><b id="sideSelectedStock">-</b></div>
+          <div class="side-stat"><span>직전 대비</span><b id="sideSelectedDelta">-</b></div>
+          <div class="side-stat"><span>마지막 갱신</span><b id="lastRefreshText">대기</b></div>
+        </div>
+      </div>
+
+      <div class="side-footer">
+        1초마다 자동 조회, 3초마다 재고 하락 시뮬레이션이 실행됩니다. 데모 종료 후에는 꼭 중지 버튼을 눌러 주세요.
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="topbar">
+        <div>
+          <p class="eyebrow">REALTIME INVENTORY</p>
+          <h1>실시간 장바구니 재고 화면</h1>
+          <p>사용자가 장바구니 상품의 재고를 실시간으로 확인하고, 재고가 10개 미만으로 떨어지면 품절 위험 알림을 즉시 확인할 수 있는 화면입니다. 재입고 시에는 재고 수량과 알림 이력이 함께 반영됩니다.</p>
+        </div>
+        <div class="top-actions">
+          <button class="btn" onclick="loadCartStocks()">새로고침</button>
+          <button class="btn warn" onclick="checkStockAlerts()">재고 하락</button>
+          <button class="btn" onclick="restockProducts()">재입고</button>
+          <button class="btn primary" onclick="startLiveMode()">LIVE 시작</button>
+          <button class="btn red" onclick="stopLiveMode()">중지</button>
+        </div>
+      </div>
+
+      <section class="summary">
+        <div class="metric"><span>API 요청 수</span><strong id="requestCount">0</strong></div>
+        <div class="metric"><span>품절 위험</span><strong id="riskCount">0</strong></div>
+        <div class="metric"><span>품절 상품</span><strong id="soldoutCount">0</strong></div>
+        <div class="metric"><span>알림 이력</span><strong id="alertCount">0</strong></div>
+        <div class="metric"><span>그래프 포인트</span><strong id="pointCount">0</strong></div>
+        <div class="metric"><span>서비스 상태</span><strong id="serviceStatus">READY</strong></div>
+      </section>
+
+      <section class="content">
+        <div class="left">
+          <section id="inventoryChart" class="card">
+            <div class="card-head">
+              <div>
+                <p class="eyebrow">REALTIME INVENTORY GRAPH</p>
+                <h2>실시간 재고 그래프</h2>
+                <p>시간 흐름에 따라 재고 하락과 재입고 상승을 한눈에 보여줍니다.</p>
+              </div>
+              <div class="mini-actions">
+                <button class="mini-btn" onclick="startLiveMode()">LIVE</button>
+                <button class="mini-btn" onclick="checkStockAlerts()">하락</button>
+                <button class="mini-btn" onclick="restockProducts()">재입고</button>
+              </div>
+            </div>
+            <div class="chart-meta">
+              <div id="productTabs" class="product-tabs"></div>
+              <div class="selected-box">
+                <span style="color:var(--muted);font-size:13px;">선택 상품 현재 재고</span>
+                <strong id="chartStockNumber">-</strong>
+                <span id="chartDeltaText" class="delta flat">대기 중</span>
+              </div>
+            </div>
+            <div class="chart-area"><canvas id="stockChart"></canvas></div>
+            <div class="chart-footer">
+              <div class="legend">
+                <span><i style="background:var(--green)"></i>재고 안정</span>
+                <span><i style="background:var(--orange)"></i>품절 위험</span>
+                <span><i style="background:var(--red)"></i>품절</span>
+                <span><i style="background:var(--blue)"></i>재입고 상승</span>
+              </div>
+              <span id="refreshText">마지막 갱신 대기 중</span>
+            </div>
+          </section>
+
+          <section id="inventoryBoard" class="card">
+            <div class="card-head">
+              <div>
+                <p class="eyebrow">LIVE INVENTORY BOARD</p>
+                <h2>실시간 재고 현황판</h2>
+                <p>상품별 현재 재고와 직전 대비 변동을 간단하게 확인할 수 있습니다.</p>
+              </div>
+            </div>
+            <div id="stockBoard" class="board-grid"></div>
+          </section>
+
+          <section id="cartSection" class="card">
+            <div class="card-head">
+              <div>
+                <p class="eyebrow">MY CART</p>
+                <h2>장바구니 상품</h2>
+                <p>실제 알림 대상이 되는 장바구니 상품 목록입니다.</p>
+              </div>
+            </div>
+            <div id="cartList" class="cart-list"></div>
+          </section>
+
+          <section id="recommendSection" class="card">
+            <div class="card-head">
+              <div>
+                <p class="eyebrow">RECOMMEND PRODUCTS</p>
+                <h2>함께 많이 담는 세일 추천 상품</h2>
+                <p>사용자 화면 느낌을 살리기 위해 추천 상품 카드도 함께 배치했습니다.</p>
+              </div>
+            </div>
+            <div id="recommendGrid" class="recommend-grid"></div>
+          </section>
+
+          <section id="logSection" class="card log-card">
+            <div class="card-head">
+              <div>
+                <p class="eyebrow">API LOG</p>
+                <h2>실행 로그</h2>
+                <p>최근 실행된 API 응답을 확인할 수 있습니다.</p>
+              </div>
+              <span id="lastUpdated" style="color:var(--muted);font-size:13px;">대기 중</span>
+            </div>
+            <pre id="logBox">실시간 재고 화면이 로드되었습니다.</pre>
+          </section>
+        </div>
+
+        <aside class="right">
+          <section class="card">
+            <div class="card-head">
+              <div>
+                <p class="eyebrow">ORDER SUMMARY</p>
+                <h2>주문 예상금액</h2>
+                <p>품절 상품은 결제 금액에서 제외된 것으로 가정한 데모입니다.</p>
+              </div>
+            </div>
+            <div class="side-panel">
+              <div class="order-lines">
+                <div class="line"><span>총 상품금액</span><strong id="totalProductPrice">0원</strong></div>
+                <div class="line"><span>세일 할인</span><strong id="discountPrice">0원</strong></div>
+                <div class="line"><span>품절 제외</span><strong id="excludePrice">0원</strong></div>
+                <div class="line total"><span>결제예정금액</span><strong id="finalPrice">0원</strong></div>
+              </div>
+            </div>
+          </section>
+
+          <section class="card">
+            <div class="card-head">
+              <div>
+                <p class="eyebrow">LIVE TICKER</p>
+                <h2>실시간 변동 요약</h2>
+                <p>클릭하면 해당 상품 그래프로 바로 이동합니다.</p>
+              </div>
+            </div>
+            <div id="tickerList" class="ticker-list side-panel"></div>
+          </section>
+
+          <section id="alertSection" class="card">
+            <div class="card-head">
+              <div>
+                <p class="eyebrow">ALERT TIMELINE</p>
+                <h2>알림 타임라인</h2>
+                <p>품절 위험, 품절, 재입고 알림을 시간순으로 보여줍니다.</p>
+              </div>
+              <button class="mini-btn" onclick="loadNotifications()">조회</button>
+            </div>
+            <div id="notificationList" class="timeline side-panel"></div>
+          </section>
+        </aside>
+      </section>
+    </main>
+  </div>
+
+  <div id="productModal" class="modal hidden">
+    <div class="modal-backdrop" onclick="closeProductDetail()"></div>
+    <div class="modal-card">
+      <button class="modal-close" onclick="closeProductDetail()">×</button>
+      <div id="modalContent"></div>
+    </div>
+  </div>
+  <div id="toast" class="toast hidden"></div>
+
+  <script>
+    const API_BASE_URL = "https://p3x7h4hbla.execute-api.ap-northeast-2.amazonaws.com";
+    let requestCount = 0;
+    let currentProducts = [];
+    let currentNotifications = [];
+    let monitorTimer = null;
+    let simulationTimer = null;
+    let selectedProductId = "P001";
+    let stockHistory = {};
+    const maxPoints = 36;
+
+    const productMeta = {
+      P001: { brand:"브링그린", name:"브링그린 티트리 시카 수딩 토너", category:"스킨케어", price:15900, originalPrice:22000, discount:"28%", image:"https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=640&q=80", desc:"민감한 피부를 위한 수딩 토너입니다. 장바구니 재고 알림 데모의 대표 상품입니다.", stock_qty:18 },
+      P002: { brand:"아비브", name:"아비브 어성초 카밍 세럼", category:"세럼", price:19800, originalPrice:26000, discount:"24%", image:"https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&w=640&q=80", desc:"세일 기간 수요가 많은 진정 세럼 상품입니다.", stock_qty:12 },
+      P003: { brand:"라운드랩", name:"라운드랩 자작나무 수분 선크림", category:"선케어", price:17400, originalPrice:24000, discount:"28%", image:"https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?auto=format&fit=crop&w=640&q=80", desc:"사용자가 자주 담는 수분 선크림 상품입니다.", stock_qty:27 },
+      P004: { brand:"바닐라코", name:"바닐라코 프라임 프라이머", category:"메이크업", price:14500, originalPrice:21000, discount:"31%", image:"https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=640&q=80", desc:"재고 변동이 자주 발생하는 메이크업 상품입니다.", stock_qty:9 },
+      P005: { brand:"토리든", name:"다이브인 저분자 히알루론산 세럼", category:"세럼", price:18900, originalPrice:24500, discount:"23%", image:"https://images.unsplash.com/photo-1571781926291-c477ebfd024b?auto=format&fit=crop&w=640&q=80", desc:"함께 많이 담는 추천 세럼 상품입니다.", stock_qty:16 },
+      P006: { brand:"어노브", name:"딥 데미지 트리트먼트 EX", category:"헤어케어", price:17900, originalPrice:23900, discount:"25%", image:"https://images.unsplash.com/photo-1596755389378-c31d21fd1273?auto=format&fit=crop&w=640&q=80", desc:"헤어케어 카테고리 추천 상품입니다.", stock_qty:22 },
+      P007: { brand:"메디힐", name:"마데카소사이드 흔적 패드", category:"패드", price:21500, originalPrice:28000, discount:"23%", image:"https://images.unsplash.com/photo-1608571423902-eed4a5ad8108?auto=format&fit=crop&w=640&q=80", desc:"재고가 적은 추천 상품 예시입니다.", stock_qty:8 },
+      P008: { brand:"롬앤", name:"쥬시 래스팅 틴트", category:"립메이크업", price:9900, originalPrice:13000, discount:"24%", image:"https://images.unsplash.com/photo-1586495777744-4413f21062fa?auto=format&fit=crop&w=640&q=80", desc:"함께 보면 좋은 립메이크업 추천 상품입니다.", stock_qty:31 },
+    };
+    const cartProductIds = ["P001","P002","P003","P004"];
+    const recommendIds = ["P005","P006","P007","P008"];
+
+    function formatPrice(v) { return `${Number(v || 0).toLocaleString("ko-KR")}원`; }
+    function nowText() { return new Date().toLocaleTimeString("ko-KR"); }
+    function setStatus(v) { document.getElementById("serviceStatus").textContent = v; }
+    function showToast(msg) {
+      const t = document.getElementById("toast");
+      t.textContent = msg;
+      t.classList.remove("hidden");
+      setTimeout(() => t.classList.add("hidden"), 2200);
+    }
+    function log(msg, data=null) {
+      const time = nowText();
+      document.getElementById("lastUpdated").textContent = `최근 실행 ${time}`;
+      document.getElementById("logBox").textContent = data ? `[${time}] ${msg}\n` + JSON.stringify(data, null, 2) : `[${time}] ${msg}`;
+    }
+    async function apiFetch(path, options={}) {
+      const res = await fetch(`${API_BASE_URL}${path}`, options);
+      if (!res.ok) throw new Error(`API 오류: ${res.status}`);
+      return await res.json();
+    }
+
+    async function loadCartStocks(silent=false) {
+      try {
+        setStatus("LOADING");
+        requestCount++;
+        const data = await apiFetch("/cart-items/U001/stocks", { method: "GET" });
+        currentProducts = data.items || [];
+        pushHistory();
+        renderAll();
+        const refresh = nowText();
+        document.getElementById("refreshText").textContent = `마지막 갱신 ${refresh}`;
+        document.getElementById("lastRefreshText").textContent = refresh;
+        if (!silent) log("실시간 재고 데이터 조회 성공", data);
+        setStatus("LIVE");
+      } catch (e) {
+        setStatus("ERROR");
+        log("재고 조회 실패: " + e.message);
+      }
+    }
+
+    async function checkStockAlerts(silent=false) {
+      try {
+        setStatus("CHECKING");
+        requestCount++;
+        const data = await apiFetch("/stock-alerts/check", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ user_id: "U001" })
+        });
+        if (!silent) {
+          log("재고 하락 및 품절 위험 알림 생성 성공", data);
+          showToast("재고 하락이 반영되었습니다.");
+        }
+        await loadCartStocks(true);
+        await loadNotifications(true);
+      } catch (e) {
+        setStatus("ERROR");
+        log("재고 하락 실패: " + e.message);
+      }
+    }
+
+    async function restockProducts(silent=false) {
+      try {
+        setStatus("RESTOCK");
+        requestCount++;
+        const data = await apiFetch("/stock-alerts/restock", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ user_id: "U001", force: true })
+        });
+        if (!silent) {
+          log("재입고 처리 성공", data);
+          showToast("재입고가 반영되었습니다.");
+        }
+        await loadCartStocks(true);
+        await loadNotifications(true);
+      } catch (e) {
+        setStatus("ERROR");
+        log("재입고 실패: " + e.message);
+        showToast("재입고 API를 먼저 배포해야 합니다.");
+      }
+    }
+
+    async function resetDemoData() {
+      try {
+        setStatus("RESET");
+        requestCount++;
+        const data = await apiFetch("/seed", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: "{}"
+        });
+        stockHistory = {};
+        log("초기 데이터 재생성 성공", data);
+        showToast("재고가 초기 상태로 복구되었습니다.");
+        await loadCartStocks(true);
+        await loadNotifications(true);
+      } catch (e) {
+        setStatus("ERROR");
+        log("초기화 실패: " + e.message);
+      }
+    }
+
+    async function loadNotifications(silent=false) {
+      try {
+        requestCount++;
+        const data = await apiFetch("/notifications/U001", { method: "GET" });
+        currentNotifications = data.notifications || [];
+        renderNotifications();
+        updateSummaryCards();
+        if (!silent) log("알림 타임라인 조회 성공", data);
+      } catch (e) {
+        if (!silent) log("알림 조회 실패: " + e.message);
+      }
+    }
+
+    function startLiveMode() {
+      if (monitorTimer || simulationTimer) return;
+      setLivePill(true);
+      showToast("실시간 재고 화면을 시작합니다.");
+      loadCartStocks(true);
+      loadNotifications(true);
+      monitorTimer = setInterval(() => { loadCartStocks(true); loadNotifications(true); }, 1000);
+      simulationTimer = setInterval(() => { checkStockAlerts(true); }, 3000);
+      log("LIVE 시작: 1초마다 조회, 3초마다 재고 하락 시뮬레이션");
+    }
+
+    function stopLiveMode() {
+      clearInterval(monitorTimer);
+      clearInterval(simulationTimer);
+      monitorTimer = null;
+      simulationTimer = null;
+      setLivePill(false);
+      setStatus("PAUSED");
+      log("실시간 재고 화면이 중지되었습니다.");
+      showToast("실시간 재고 화면을 중지했습니다.");
+    }
+
+    function setLivePill(on) {
+      const pill = document.getElementById("livePill");
+      document.getElementById("liveLabel").textContent = on ? "ON" : "OFF";
+      pill.classList.toggle("on", on);
+    }
+
+    function pushHistory() {
+      const time = nowText();
+      currentProducts.forEach(p => {
+        const id = p.product_id;
+        const stock = Number(p.stock_qty);
+        if (!stockHistory[id]) stockHistory[id] = [];
+        stockHistory[id].push({ time, stock });
+        if (stockHistory[id].length > maxPoints) stockHistory[id].shift();
+      });
+    }
+
+    function getProduct(id) {
+      return currentProducts.find(p => p.product_id === id);
+    }
+    function getDisplayProduct(id) {
+      return getProduct(id) || { product_id:id, product_name: productMeta[id].name, category: productMeta[id].category, stock_qty: productMeta[id].stock_qty };
+    }
+    function getDelta(id) {
+      const history = stockHistory[id] || [];
+      if (history.length < 2) return 0;
+      return history[history.length - 1].stock - history[history.length - 2].stock;
+    }
+    function getStatusClass(stock) {
+      return stock <= 0 ? "soldout" : stock < 10 ? "risk" : "";
+    }
+    function getStatusText(stock) {
+      return stock <= 0 ? "품절" : stock < 10 ? "품절 위험" : "재고 안정";
+    }
+
+    function renderAll() {
+      if (currentProducts.length && !getProduct(selectedProductId)) {
+        selectedProductId = currentProducts[0].product_id;
+      }
+      renderTabs();
+      renderChart();
+      renderStockBoard();
+      renderCartItems();
+      renderRecommendations();
+      renderTicker();
+      updateSelectedSummary();
+      updateSummaryCards();
+      calculateOrderSummary();
+    }
+
+    function renderTabs() {
+      const tabs = document.getElementById("productTabs");
+      tabs.innerHTML = "";
+      currentProducts.forEach(p => {
+        const btn = document.createElement("button");
+        btn.className = `tab ${p.product_id === selectedProductId ? "active" : ""}`;
+        btn.textContent = `${p.product_id} · ${(productMeta[p.product_id]?.brand || "").slice(0, 6)}`;
+        btn.onclick = () => {
+          selectedProductId = p.product_id;
+          renderAll();
+        };
+        tabs.appendChild(btn);
+      });
+    }
+
+    function renderChart() {
+      const canvas = document.getElementById("stockChart");
+      const rect = canvas.parentElement.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      const ctx = canvas.getContext("2d");
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const w = rect.width;
+      const h = rect.height;
+      ctx.clearRect(0, 0, w, h);
+
+      const padL = 48, padR = 18, padT = 22, padB = 34;
+      const chartW = w - padL - padR;
+      const chartH = h - padT - padB;
+      const history = stockHistory[selectedProductId] || [];
+      const minY = 0, maxY = 40;
+
+      ctx.fillStyle = "#fbfffc";
+      ctx.fillRect(0, 0, w, h);
+
+      ctx.font = "12px Pretendard, Arial";
+      ctx.fillStyle = "#7d887f";
+      ctx.strokeStyle = "#e6ece8";
+      ctx.lineWidth = 1;
+      [0,10,20,30,40].forEach(y => {
+        const py = padT + chartH - (y - minY) / (maxY - minY) * chartH;
+        ctx.beginPath();
+        ctx.moveTo(padL, py);
+        ctx.lineTo(w - padR, py);
+        ctx.stroke();
+        ctx.fillText(String(y), 10, py + 4);
+      });
+
+      const riskY = padT + chartH - (10 - minY) / (maxY - minY) * chartH;
+      ctx.strokeStyle = "rgba(255,138,0,.85)";
+      ctx.setLineDash([6,5]);
+      ctx.beginPath();
+      ctx.moveTo(padL, riskY);
+      ctx.lineTo(w - padR, riskY);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = "#ff8a00";
+      ctx.fillText("10개 미만 품절 위험", padL + 8, riskY - 8);
+
+      if (history.length < 2) {
+        ctx.fillStyle = "#69766d";
+        ctx.font = "15px Pretendard, Arial";
+        ctx.fillText("데이터를 수집하는 중입니다. LIVE 시작 또는 새로고침을 눌러 주세요.", padL, h / 2);
+        return;
+      }
+
+      const xStep = chartW / (maxPoints - 1);
+      const points = history.map((d, i) => {
+        return {
+          x: padL + i * xStep + (maxPoints - history.length) * xStep,
+          y: padT + chartH - (d.stock - minY) / (maxY - minY) * chartH,
+          stock: d.stock,
+          time: d.time
+        };
+      });
+      const last = points[points.length - 1];
+      const prev = points[points.length - 2];
+      const delta = last.stock - prev.stock;
+      const lineColor = delta > 0 ? "#2563eb" : last.stock <= 0 ? "#e03131" : last.stock < 10 ? "#ff8a00" : "#0f7f4e";
+
+      const grad = ctx.createLinearGradient(0, padT, 0, h - padB);
+      grad.addColorStop(0, delta > 0 ? "rgba(37,99,235,.18)" : last.stock <= 0 ? "rgba(224,49,49,.18)" : last.stock < 10 ? "rgba(255,138,0,.18)" : "rgba(15,127,78,.18)");
+      grad.addColorStop(1, "rgba(255,255,255,0)");
+      ctx.beginPath();
+      points.forEach((p, i) => i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y));
+      ctx.lineTo(last.x, h - padB);
+      ctx.lineTo(points[0].x, h - padB);
+      ctx.closePath();
+      ctx.fillStyle = grad;
+      ctx.fill();
+
+      ctx.beginPath();
+      points.forEach((p, i) => i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y));
+      ctx.strokeStyle = lineColor;
+      ctx.lineWidth = 3.5;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      ctx.stroke();
+
+      points.slice(-10).forEach(p => {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 3.5, 0, Math.PI * 2);
+        ctx.fillStyle = "#fff";
+        ctx.fill();
+        ctx.strokeStyle = lineColor;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      });
+
+      const first = history[0];
+      const middle = history[Math.floor(history.length / 2)];
+      const end = history[history.length - 1];
+      ctx.fillStyle = "#7d887f";
+      if (first) ctx.fillText(first.time, padL, h - 10);
+      if (middle) ctx.fillText(middle.time, padL + chartW / 2 - 24, h - 10);
+      if (end) ctx.fillText(end.time, w - padR - 68, h - 10);
+    }
+
+    function updateSelectedSummary() {
+      const item = getDisplayProduct(selectedProductId);
+      const stock = Number(item.stock_qty || 0);
+      const delta = getDelta(selectedProductId);
+      const brand = productMeta[selectedProductId]?.brand || item.product_id;
+
+      document.getElementById("chartStockNumber").textContent = `${stock}`;
+      const deltaText = document.getElementById("chartDeltaText");
+      deltaText.textContent = delta > 0 ? `▲ 재입고 +${delta}개` : delta < 0 ? `▼ 재고 감소 ${delta}개` : "변동 없음";
+      deltaText.className = `delta ${delta > 0 ? "up" : delta < 0 ? "down" : "flat"}`;
+
+      document.getElementById("sideSelectedName").textContent = brand;
+      document.getElementById("sideSelectedStock").textContent = `${stock}개`;
+      document.getElementById("sideSelectedDelta").textContent = delta > 0 ? `▲ +${delta}` : delta < 0 ? `▼ ${delta}` : "-";
+      document.getElementById("pointCount").textContent = (stockHistory[selectedProductId] || []).length;
+    }
+
+    function renderStockBoard() {
+      const board = document.getElementById("stockBoard");
+      if (!currentProducts.length) {
+        board.innerHTML = '<div class="empty">재고 현황 데이터가 없습니다.</div>';
+        return;
+      }
+      board.innerHTML = "";
+      currentProducts.forEach(p => {
+        const stock = Number(p.stock_qty);
+        const delta = getDelta(p.product_id);
+        const meta = productMeta[p.product_id];
+        const cls = getStatusClass(stock);
+        const percent = Math.min(100, Math.round((stock / 35) * 100));
+
+        const card = document.createElement("div");
+        card.className = "stock-mini";
+        card.innerHTML = `
+          <div class="brand-name">${meta.brand}</div>
+          <strong>${p.product_name}</strong>
+          <div class="badge-row">
+            <span class="badge ${cls}">${getStatusText(stock)}</span>
+            <span class="badge live">${stock}개</span>
+          </div>
+          <div class="delta-label" style="color:${delta > 0 ? 'var(--blue)' : delta < 0 ? 'var(--red)' : 'var(--muted)'}">
+            ${delta > 0 ? `▲ +${delta}` : delta < 0 ? `▼ ${delta}` : '-'}
+          </div>
+          <div class="stock-bar">
+            <div class="stock-fill ${cls}" style="width:${percent}%"></div>
+          </div>
+        `;
+        board.appendChild(card);
+      });
+    }
+
+    function renderCartItems() {
+      const list = document.getElementById("cartList");
+      if (!currentProducts.length) {
+        list.innerHTML = '<div class="empty">장바구니 상품이 없습니다.</div>';
+        return;
+      }
+      list.innerHTML = "";
+      currentProducts.forEach(p => {
+        const stock = Number(p.stock_qty);
+        const cls = getStatusClass(stock);
+        const meta = productMeta[p.product_id];
+
+        const item = document.createElement("article");
+        item.className = `cart-item ${cls}`;
+        item.innerHTML = `
+          <div><input type="checkbox" ${stock <= 0 ? '' : 'checked'} /></div>
+          <img class="item-image" src="${meta.image}" alt="${meta.name}" />
+          <div>
+            <div class="brand-name">${meta.brand}</div>
+            <h3 class="item-title">${p.product_name}</h3>
+            <div class="badge-row">
+              <span class="badge">${p.category}</span>
+              <span class="badge live">실시간 조회</span>
+              <span class="badge ${cls}">${getStatusText(stock)}</span>
+            </div>
+            <div class="price-row">
+              <strong>${formatPrice(meta.price)}</strong>
+              <del>${formatPrice(meta.originalPrice)}</del>
+              <span class="discount">${meta.discount}</span>
+            </div>
+          </div>
+          <div class="item-side">
+            <small>현재 재고</small>
+            <div class="stock-num ${cls}">${stock}</div>
+          </div>
+        `;
+        list.appendChild(item);
+      });
+    }
+
+    function renderRecommendations() {
+      const grid = document.getElementById("recommendGrid");
+      grid.innerHTML = "";
+      recommendIds.forEach(id => {
+        const meta = productMeta[id];
+        const stock = Number(meta.stock_qty || 0);
+        const cls = getStatusClass(stock);
+        const btn = document.createElement("button");
+        btn.className = "recommend-card";
+        btn.onclick = () => openProductDetail(id);
+        btn.innerHTML = `
+          <img src="${meta.image}" alt="${meta.name}" />
+          <div class="recommend-info">
+            <div class="brand-name">${meta.brand}</div>
+            <h3>${meta.name}</h3>
+            <div class="badge-row">
+              <span class="badge">${meta.category}</span>
+              <span class="badge ${cls}">재고 ${stock}개</span>
+            </div>
+            <div class="price-row">
+              <strong>${formatPrice(meta.price)}</strong>
+              <span class="discount">${meta.discount}</span>
+            </div>
+          </div>
+        `;
+        grid.appendChild(btn);
+      });
+    }
+
+    function renderTicker() {
+      const box = document.getElementById("tickerList");
+      if (!currentProducts.length) {
+        box.innerHTML = '<div class="empty">데이터 대기 중</div>';
+        return;
+      }
+      box.innerHTML = "";
+      currentProducts.forEach(p => {
+        const meta = productMeta[p.product_id];
+        const stock = Number(p.stock_qty);
+        const delta = getDelta(p.product_id);
+
+        const row = document.createElement("div");
+        row.className = "ticker-item";
+        row.onclick = () => {
+          selectedProductId = p.product_id;
+          renderAll();
+          document.getElementById("inventoryChart").scrollIntoView({ behavior: "smooth" });
+        };
+        row.innerHTML = `
+          <b>${meta.brand}</b>
+          <span class="value">${stock}개</span>
+          <span class="delta ${delta > 0 ? 'up' : delta < 0 ? 'down' : 'flat'}">${delta > 0 ? `▲ +${delta}` : delta < 0 ? `▼ ${delta}` : '-'}</span>
+        `;
+        box.appendChild(row);
+      });
+    }
+
+    function renderNotifications() {
+      const list = document.getElementById("notificationList");
+      if (!currentNotifications.length) {
+        list.innerHTML = '<div class="empty">아직 알림 이력이 없습니다.</div>';
+        return;
+      }
+      list.innerHTML = "";
+      currentNotifications.forEach(n => {
+        const status = n.status || "SENT";
+        const cls = status === "RESTOCKED" ? "restock" : status === "SOLD_OUT" ? "soldout" : "risk";
+        const title = status === "RESTOCKED" ? "재입고 알림" : status === "SOLD_OUT" ? "품절 알림" : "품절 위험 알림";
+        const item = document.createElement("div");
+        item.className = `event ${cls}`;
+        item.innerHTML = `
+          <strong>${title} · ${status}</strong>
+          <p>${n.message}</p>
+          <div class="time">${n.sent_at}</div>
+        `;
+        list.appendChild(item);
+      });
+    }
+
+    function calculateOrderSummary() {
+      let original = 0, discounted = 0, excluded = 0;
+      currentProducts.forEach(p => {
+        const meta = productMeta[p.product_id];
+        const stock = Number(p.stock_qty);
+        original += meta.originalPrice;
+        if (stock <= 0) excluded += meta.price;
+        else discounted += meta.price;
+      });
+      document.getElementById("totalProductPrice").textContent = formatPrice(original);
+      document.getElementById("discountPrice").textContent = formatPrice(original - discounted - excluded);
+      document.getElementById("excludePrice").textContent = formatPrice(excluded);
+      document.getElementById("finalPrice").textContent = formatPrice(discounted);
+    }
+
+    function updateSummaryCards() {
+      const risk = currentProducts.filter(p => Number(p.stock_qty) > 0 && Number(p.stock_qty) < 10).length;
+      const soldout = currentProducts.filter(p => Number(p.stock_qty) <= 0).length;
+      document.getElementById("requestCount").textContent = requestCount;
+      document.getElementById("riskCount").textContent = risk;
+      document.getElementById("soldoutCount").textContent = soldout;
+      document.getElementById("alertCount").textContent = currentNotifications.length;
+    }
+
+    function openProductDetail(id) {
+      const meta = productMeta[id];
+      const item = getDisplayProduct(id);
+      const stock = Number(item.stock_qty || 0);
+      const cls = getStatusClass(stock);
+      const content = document.getElementById("modalContent");
+      content.innerHTML = `
+        <div class="detail-grid">
+          <img src="${meta.image}" alt="${meta.name}" />
+          <div>
+            <p class="eyebrow">${meta.brand}</p>
+            <h2 style="margin:0 0 10px; font-size:28px;">${meta.name}</h2>
+            <div class="badge-row" style="margin-bottom:14px;">
+              <span class="badge">${meta.category}</span>
+              <span class="badge ${cls}">${getStatusText(stock)}</span>
+              <span class="badge live">재고 ${stock}개</span>
+            </div>
+            <div class="price-row" style="margin-bottom:14px;">
+              <strong>${formatPrice(meta.price)}</strong>
+              <del>${formatPrice(meta.originalPrice)}</del>
+              <span class="discount">${meta.discount}</span>
+            </div>
+            <p class="detail-desc">${meta.desc}</p>
+          </div>
+        </div>
+      `;
+      document.getElementById("productModal").classList.remove("hidden");
+    }
+
+    function closeProductDetail() {
+      document.getElementById("productModal").classList.add("hidden");
+    }
+
+    window.addEventListener("resize", () => renderChart());
+    window.addEventListener("load", async () => {
+      setLivePill(false);
+      renderRecommendations();
+      log("실시간 재고 화면이 로드되었습니다.");
+      await loadCartStocks(true);
+      await loadNotifications(true);
+    });
+  </script>
+</body>
+</html>
